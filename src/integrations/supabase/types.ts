@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      leads: {
+        Row: {
+          city: string
+          created_at: string
+          id: string
+          items: Json
+          name: string
+          phone: string
+          total: number
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          id?: string
+          items?: Json
+          name: string
+          phone: string
+          total?: number
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          id?: string
+          items?: Json
+          name?: string
+          phone?: string
+          total?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
