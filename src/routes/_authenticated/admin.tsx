@@ -3,7 +3,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import { LogOut, Trash2, RefreshCcw, Save, ShieldAlert, Plus, ArrowUp, ArrowDown, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  leadsStore,
   productsStore,
   trackingStore,
   type Lead,
@@ -136,14 +135,45 @@ function Dashboard({ email, onSignOut }: { email: string; onSignOut: () => void 
 
 function LeadsPanel() {
   const [items, setItems] = useState<Lead[]>([]);
-  useEffect(() => setItems(leadsStore.list()), []);
-  const remove = (id: string) => {
-    leadsStore.remove(id);
-    setItems(leadsStore.list());
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setErr(error.message);
+    } else {
+      setErr(null);
+      setItems(
+        (data ?? []).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          phone: r.phone,
+          city: r.city,
+          items: Array.isArray(r.items) ? r.items : [],
+          total: Number(r.total ?? 0),
+          createdAt: r.created_at,
+        })),
+      );
+    }
+    setLoading(false);
   };
-  const clear = () => {
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const remove = async (id: string) => {
+    await supabase.from("leads").delete().eq("id", id);
+    setItems((s) => s.filter((l) => l.id !== id));
+  };
+  const clear = async () => {
     if (!confirm("Supprimer tous les prospects ?")) return;
-    leadsStore.clear();
+    await supabase.from("leads").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     setItems([]);
   };
 
@@ -151,14 +181,26 @@ function LeadsPanel() {
     <section className="rounded-3xl bg-card p-6 shadow-soft">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl">Prospects ({items.length})</h2>
-        {items.length > 0 && (
-          <button onClick={clear} className="text-xs font-semibold text-destructive hover:underline">
-            Tout supprimer
+        <div className="flex gap-2">
+          <button
+            onClick={load}
+            className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-semibold hover:bg-secondary"
+          >
+            <RefreshCcw className="size-3" /> Rafraîchir
           </button>
-        )}
+          {items.length > 0 && (
+            <button onClick={clear} className="text-xs font-semibold text-destructive hover:underline">
+              Tout supprimer
+            </button>
+          )}
+        </div>
       </div>
 
-      {items.length === 0 ? (
+      {loading ? (
+        <p className="rounded-xl bg-muted px-4 py-10 text-center text-sm text-muted-foreground">Chargement…</p>
+      ) : err ? (
+        <p className="rounded-xl bg-destructive/10 px-4 py-6 text-center text-sm text-destructive">{err}</p>
+      ) : items.length === 0 ? (
         <p className="rounded-xl bg-muted px-4 py-10 text-center text-sm text-muted-foreground">
           Aucun prospect pour le moment.
         </p>
@@ -199,9 +241,7 @@ function LeadsPanel() {
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="py-2 font-semibold">
-                    {l.total ? `${l.total} MAD` : "—"}
-                  </td>
+                  <td className="py-2 font-semibold">{l.total ? `${l.total} MAD` : "—"}</td>
                   <td className="py-2 text-xs text-muted-foreground">
                     {new Date(l.createdAt).toLocaleString()}
                   </td>

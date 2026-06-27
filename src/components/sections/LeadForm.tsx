@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { Send, MessageCircle, Minus, Plus, Trash2, Truck } from "lucide-react";
 import { z } from "zod";
 import { useI18n } from "@/lib/i18n";
-import { leadsStore } from "@/lib/storage";
+import { productsStore, type ProductGroup } from "@/lib/storage";
 import { cartStore, useCart } from "@/lib/cart";
+import { supabase } from "@/integrations/supabase/client";
 
 const WHATSAPP = "212600000000";
 
@@ -17,24 +18,37 @@ const schema = z.object({
 export function LeadForm() {
   const { t, lang } = useI18n();
   const items = useCart();
-  const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
+  const [status, setStatus] = useState<"idle" | "ok" | "err" | "sending">("idle");
   const [form, setForm] = useState({ name: "", phone: "", city: "" });
+  const [products, setProducts] = useState<ProductGroup[]>([]);
+
+  useEffect(() => {
+    setProducts(productsStore.list());
+  }, []);
 
   const currency = lang === "ar" ? "د.م." : "MAD";
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const r = schema.safeParse(form);
     if (!r.success || items.length === 0) {
       setStatus("err");
       return;
     }
-    leadsStore.add({
-      ...r.data,
+    setStatus("sending");
+    const { error } = await supabase.from("leads").insert({
+      name: r.data.name,
+      phone: r.data.phone,
+      city: r.data.city,
       items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
       total,
     });
+    if (error) {
+      console.error(error);
+      setStatus("err");
+      return;
+    }
     setStatus("ok");
     setForm({ name: "", phone: "", city: "" });
     cartStore.clear();
@@ -47,6 +61,10 @@ export function LeadForm() {
     items.map((i) => `• ${i.name} × ${i.qty}`).join("\n") +
     (items.length ? `\n${t("form.total")}: ${total} ${currency}` : "");
   const waLink = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(waText)}`;
+
+  const addProduct = (p: ProductGroup) => {
+    cartStore.add({ id: p.id, name: p.name, price: p.price, image: p.images[0] });
+  };
 
   return (
     <section id="order" className="relative py-20 sm:py-28">
@@ -76,8 +94,55 @@ export function LeadForm() {
             </div>
           </div>
 
-          {/* Cart */}
+          {/* Product picker */}
           <div className="relative mt-8">
+            <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-foreground/70">
+              {lang === "ar" ? "اختر منتجاتك" : "Choisis tes produits"}
+            </h3>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
+              {products.map((p) => {
+                const inCart = items.find((i) => i.id === p.id);
+                return (
+                  <button
+                    type="button"
+                    key={p.id}
+                    onClick={() => addProduct(p)}
+                    className={`group relative overflow-hidden rounded-2xl border-2 bg-background text-left transition hover:-translate-y-0.5 hover:shadow-pop ${
+                      inCart ? "border-pink ring-2 ring-pink/30" : "border-border"
+                    }`}
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-secondary">
+                      {p.images[0] && (
+                        <img
+                          src={p.images[0]}
+                          alt={p.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition group-hover:scale-105"
+                        />
+                      )}
+                      <span className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-gradient-pink-sun text-white shadow-pop">
+                        <Plus className="size-3.5" />
+                      </span>
+                      {inCart && (
+                        <span className="absolute left-1.5 top-1.5 rounded-full bg-pink px-2 py-0.5 text-[10px] font-bold text-white">
+                          × {inCart.qty}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <p className="line-clamp-1 text-xs font-semibold">{p.name}</p>
+                      <p className="text-[11px] text-foreground/60">
+                        {p.price} {currency}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Cart */}
+          <div className="relative mt-6">
             <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-foreground/70">
               {t("form.products")}
             </h3>
@@ -166,10 +231,11 @@ export function LeadForm() {
             <div className="mt-2 flex flex-col gap-3 sm:flex-row">
               <button
                 type="submit"
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-pink-sun px-6 py-3.5 text-sm font-bold text-white shadow-pop transition hover:scale-[1.02]"
+                disabled={status === "sending"}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-pink-sun px-6 py-3.5 text-sm font-bold text-white shadow-pop transition hover:scale-[1.02] disabled:opacity-60"
               >
                 <Send className="size-4" />
-                {t("form.submit")}
+                {status === "sending" ? "…" : t("form.submit")}
               </button>
               <a
                 href={waLink}
