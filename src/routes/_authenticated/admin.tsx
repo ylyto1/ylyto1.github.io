@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { LogOut, Trash2, RefreshCcw, Save, ShieldAlert } from "lucide-react";
+import { LogOut, Trash2, RefreshCcw, Save, ShieldAlert, Plus, ArrowUp, ArrowDown, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   leadsStore,
-  pricesStore,
+  productsStore,
   trackingStore,
   type Lead,
-  type ProductPrice,
+  type ProductGroup,
   type TrackingConfig,
 } from "@/lib/storage";
 
