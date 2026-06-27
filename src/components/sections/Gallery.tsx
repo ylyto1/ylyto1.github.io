@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 import { productsStore, type ProductGroup } from "@/lib/storage";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Gallery() {
   const { t, lang } = useI18n();
@@ -44,15 +45,53 @@ export function Gallery() {
   );
 }
 
+const SLIDE_MS = 1400;
+
 function ProductCard({ product, currency }: { product: ProductGroup; currency: string }) {
   const [active, setActive] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const isMobile = useIsMobile();
+  const ref = useRef<HTMLElement>(null);
   const images = product.images.length > 0 ? product.images : [""];
   const hasMany = images.length > 1;
 
+  // Mobile: auto-play when card is visible in viewport
+  useEffect(() => {
+    if (!isMobile || !hasMany || !ref.current) return;
+    const el = ref.current;
+    const io = new IntersectionObserver(
+      ([entry]) => setPlaying(entry.isIntersecting && entry.intersectionRatio > 0.5),
+      { threshold: [0, 0.5, 1] },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [isMobile, hasMany]);
+
+  // Auto-cycle when playing (desktop hover or mobile in-view)
+  useEffect(() => {
+    if (!playing || !hasMany) return;
+    const id = window.setInterval(() => {
+      setActive((a) => (a + 1) % images.length);
+    }, SLIDE_MS);
+    return () => window.clearInterval(id);
+  }, [playing, hasMany, images.length]);
+
+  const handleEnter = () => {
+    if (isMobile) return;
+    setPlaying(true);
+  };
+  const handleLeave = () => {
+    if (isMobile) return;
+    setPlaying(false);
+    setActive(0);
+  };
+
   return (
     <figure
+      ref={ref}
       className="group relative overflow-hidden rounded-3xl bg-card shadow-soft transition hover:-translate-y-1 hover:shadow-pop"
-      onMouseLeave={() => setActive(0)}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-secondary">
         {images.map((src, idx) => (
@@ -71,15 +110,11 @@ function ProductCard({ product, currency }: { product: ProductGroup; currency: s
         {hasMany && (
           <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
             {images.map((_, idx) => (
-              <button
+              <span
                 key={idx}
-                type="button"
-                aria-label={`Image ${idx + 1}`}
-                onMouseEnter={() => setActive(idx)}
-                onFocus={() => setActive(idx)}
-                onClick={() => setActive(idx)}
+                aria-hidden
                 className={`h-2 rounded-full transition-all ${
-                  idx === active ? "w-6 bg-white" : "w-2 bg-white/60 hover:bg-white"
+                  idx === active ? "w-6 bg-white" : "w-2 bg-white/60"
                 }`}
               />
             ))}
