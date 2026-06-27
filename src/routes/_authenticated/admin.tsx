@@ -170,13 +170,15 @@ function LeadsPanel() {
                 <th className="py-2">Nom</th>
                 <th className="py-2">Téléphone</th>
                 <th className="py-2">Ville</th>
+                <th className="py-2">Produits</th>
+                <th className="py-2">Total</th>
                 <th className="py-2">Date</th>
                 <th className="py-2"></th>
               </tr>
             </thead>
             <tbody>
               {items.map((l) => (
-                <tr key={l.id} className="border-t border-border">
+                <tr key={l.id} className="border-t border-border align-top">
                   <td className="py-2 font-medium">{l.name}</td>
                   <td className="py-2">
                     <a href={`tel:${l.phone}`} className="text-violet hover:underline">
@@ -184,6 +186,22 @@ function LeadsPanel() {
                     </a>
                   </td>
                   <td className="py-2">{l.city}</td>
+                  <td className="py-2">
+                    {l.items && l.items.length > 0 ? (
+                      <ul className="space-y-0.5 text-xs">
+                        {l.items.map((it) => (
+                          <li key={it.id}>
+                            • {it.name} × <strong>{it.qty}</strong>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="py-2 font-semibold">
+                    {l.total ? `${l.total} MAD` : "—"}
+                  </td>
                   <td className="py-2 text-xs text-muted-foreground">
                     {new Date(l.createdAt).toLocaleString()}
                   </td>

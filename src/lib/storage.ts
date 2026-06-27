@@ -1,10 +1,19 @@
 // Lightweight typed localStorage layer. Swap implementations later for a backend.
 
+export interface LeadItem {
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+}
+
 export interface Lead {
   id: string;
   name: string;
   phone: string;
   city: string;
+  items?: LeadItem[];
+  total?: number;
   createdAt: string;
 }
 

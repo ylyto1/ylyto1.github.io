@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BackgroundDecor } from "@/components/BackgroundDecor";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { FloatingOrderButton } from "@/components/FloatingOrderButton";
 import { Hero } from "@/components/sections/Hero";
 import { Story } from "@/components/sections/Story";
 import { Gallery } from "@/components/sections/Gallery";
@@ -33,6 +34,7 @@ function Index() {
     <div className="relative min-h-screen overflow-hidden">
       <BackgroundDecor />
       <LanguageSwitcher />
+      <FloatingOrderButton />
       <main>
         <Hero />
         <Story />

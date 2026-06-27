@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { Plus, Check } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { productsStore, type ProductGroup } from "@/lib/storage";
+import { cartStore } from "@/lib/cart";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Gallery() {
@@ -48,14 +50,15 @@ export function Gallery() {
 const SLIDE_MS = 1400;
 
 function ProductCard({ product, currency }: { product: ProductGroup; currency: string }) {
+  const { t } = useI18n();
   const [active, setActive] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const isMobile = useIsMobile();
   const ref = useRef<HTMLElement>(null);
   const images = product.images.length > 0 ? product.images : [""];
   const hasMany = images.length > 1;
 
-  // Mobile: auto-play when card is visible in viewport
   useEffect(() => {
     if (!isMobile || !hasMany || !ref.current) return;
     const el = ref.current;
@@ -67,7 +70,6 @@ function ProductCard({ product, currency }: { product: ProductGroup; currency: s
     return () => io.disconnect();
   }, [isMobile, hasMany]);
 
-  // Auto-cycle when playing (desktop hover or mobile in-view)
   useEffect(() => {
     if (!playing || !hasMany) return;
     const id = window.setInterval(() => {
@@ -84,6 +86,20 @@ function ProductCard({ product, currency }: { product: ProductGroup; currency: s
     if (isMobile) return;
     setPlaying(false);
     setActive(0);
+  };
+
+  const handleAdd = () => {
+    cartStore.add({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: images[0],
+    });
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1400);
+    // smooth scroll to order section
+    const el = document.getElementById("order");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -129,10 +145,22 @@ function ProductCard({ product, currency }: { product: ProductGroup; currency: s
       </div>
 
       <figcaption className="flex items-center justify-between gap-2 p-4">
-        <span className="truncate text-sm font-semibold">{product.name}</span>
-        <span className="shrink-0 rounded-full bg-gradient-violet-sky px-2.5 py-0.5 text-xs font-bold text-white">
-          {product.price} {currency}
-        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{product.name}</p>
+          <span className="mt-1 inline-block rounded-full bg-gradient-violet-sky px-2.5 py-0.5 text-xs font-bold text-white">
+            {product.price} {currency}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleAdd}
+          aria-label={t("gallery.add")}
+          className={`grid size-11 shrink-0 place-items-center rounded-full text-white shadow-pop transition hover:scale-110 ${
+            justAdded ? "bg-emerald-500" : "bg-gradient-pink-sun"
+          }`}
+        >
+          {justAdded ? <Check className="size-5" /> : <Plus className="size-5" />}
+        </button>
       </figcaption>
     </figure>
   );
