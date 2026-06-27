@@ -1,29 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { BackgroundDecor } from "@/components/BackgroundDecor";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Hero } from "@/components/sections/Hero";
+import { Story } from "@/components/sections/Story";
+import { Gallery } from "@/components/sections/Gallery";
+import { WhyYlyto } from "@/components/sections/WhyYlyto";
+import { LeadForm } from "@/components/sections/LeadForm";
+import { Footer } from "@/components/sections/Footer";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "YLYTO — Mode enfant marocaine premium" },
+      {
+        name: "description",
+        content:
+          "Nouvelle marque marocaine de vêtements pour enfants. Douceur, couleurs joyeuses et confort. Commandez la nouvelle collection.",
+      },
+      { property: "og:title", content: "YLYTO — Mode enfant marocaine premium" },
+      {
+        property: "og:description",
+        content: "Découvrez la nouvelle collection YLYTO, pensée au Maroc avec amour.",
+      },
+      { property: "og:image", content: "https://cdn.ylyto.ma/ylyto/1.webp" },
     ],
   }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="relative min-h-screen overflow-hidden">
+      <BackgroundDecor />
+      <LanguageSwitcher />
+      <main>
+        <Hero />
+        <Story />
+        <Gallery />
+        <WhyYlyto />
+        <LeadForm />
+      </main>
+      <Footer />
     </div>
   );
 }
