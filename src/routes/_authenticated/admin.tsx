@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { LogOut, Trash2, RefreshCcw, Save, ShieldAlert } from "lucide-react";
+import { LogOut, Trash2, RefreshCcw, Save, ShieldAlert, Plus, ArrowUp, ArrowDown, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   leadsStore,
-  pricesStore,
+  productsStore,
   trackingStore,
   type Lead,
-  type ProductPrice,
+  type ProductGroup,
   type TrackingConfig,
 } from "@/lib/storage";
 
@@ -255,46 +255,78 @@ function TrackingPanel() {
 }
 
 function PricesPanel() {
-  const [items, setItems] = useState<ProductPrice[]>([]);
-  useEffect(() => setItems(pricesStore.list()), []);
+  const [items, setItems] = useState<ProductGroup[]>([]);
+  const [newImg, setNewImg] = useState<Record<string, string>>({});
+  useEffect(() => setItems(productsStore.list()), []);
 
-  const update = (id: string, patch: Partial<ProductPrice>) => {
-    setItems(pricesStore.update(id, patch));
+  const update = (id: string, patch: Partial<ProductGroup>) => setItems(productsStore.update(id, patch));
+  const move = (id: string, dir: -1 | 1) => setItems(productsStore.move(id, dir));
+  const remove = (id: string) => {
+    if (!confirm("Supprimer ce produit ?")) return;
+    setItems(productsStore.remove(id));
   };
+  const addGroup = () => setItems(productsStore.add());
+  const addImg = (id: string) => {
+    const url = newImg[id];
+    if (!url) return;
+    setItems(productsStore.addImage(id, url));
+    setNewImg((s) => ({ ...s, [id]: "" }));
+  };
+  const removeImg = (id: string, idx: number) => setItems(productsStore.removeImage(id, idx));
+  const moveImg = (id: string, idx: number, dir: -1 | 1) => setItems(productsStore.moveImage(id, idx, dir));
   const reset = () => {
     if (!confirm("Réinitialiser tous les produits par défaut ?")) return;
-    setItems(pricesStore.reset());
+    setItems(productsStore.reset());
   };
 
   return (
     <section className="rounded-3xl bg-card p-6 shadow-soft">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl">Produits & Prix</h2>
-        <button
-          onClick={reset}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
-        >
-          <RefreshCcw className="size-3" /> Réinitialiser
-        </button>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl">Produits & Prix ({items.length})</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={addGroup}
+            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-pink-sun px-3 py-1.5 text-xs font-semibold text-white shadow-pop"
+          >
+            <Plus className="size-3" /> Ajouter un produit
+          </button>
+          <button
+            onClick={reset}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+          >
+            <RefreshCcw className="size-3" /> Réinitialiser
+          </button>
+        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {items.map((p) => (
-          <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3">
-            <img src={p.image} alt="" className="size-16 shrink-0 rounded-xl object-cover" loading="lazy" />
-            <div className="min-w-0 flex-1 space-y-1.5">
+      <div className="space-y-4">
+        {items.map((p, i) => (
+          <div key={p.id} className="rounded-2xl border border-border bg-background p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => move(p.id, -1)}
+                  disabled={i === 0}
+                  className="grid size-7 place-items-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
+                  title="Monter"
+                >
+                  <ArrowUp className="size-3" />
+                </button>
+                <button
+                  onClick={() => move(p.id, 1)}
+                  disabled={i === items.length - 1}
+                  className="grid size-7 place-items-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
+                  title="Descendre"
+                >
+                  <ArrowDown className="size-3" />
+                </button>
+              </div>
               <input
                 value={p.name}
                 onChange={(e) => update(p.id, { name: e.target.value })}
-                className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-sm font-semibold outline-none focus:border-border focus:bg-card"
+                className="min-w-0 flex-1 rounded-lg border border-border bg-card px-2 py-1 text-sm font-semibold outline-none focus:border-pink"
               />
-              <input
-                value={p.image}
-                onChange={(e) => update(p.id, { image: e.target.value })}
-                placeholder="URL image"
-                className="w-full rounded-lg border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground outline-none focus:border-pink"
-              />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <input
                   type="number"
                   min={0}
@@ -304,6 +336,60 @@ function PricesPanel() {
                 />
                 <span className="text-xs text-muted-foreground">MAD</span>
               </div>
+              <button
+                onClick={() => remove(p.id)}
+                className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="size-3" /> Supprimer
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {p.images.map((src, idx) => (
+                <div key={`${src}-${idx}`} className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-secondary">
+                  <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <div className="absolute inset-x-1 bottom-1 flex justify-between gap-1 opacity-0 transition group-hover:opacity-100">
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => moveImg(p.id, idx, -1)}
+                        disabled={idx === 0}
+                        className="grid size-6 place-items-center rounded-md bg-black/60 text-white disabled:opacity-30"
+                      >
+                        <ArrowUp className="size-3" />
+                      </button>
+                      <button
+                        onClick={() => moveImg(p.id, idx, 1)}
+                        disabled={idx === p.images.length - 1}
+                        className="grid size-6 place-items-center rounded-md bg-black/60 text-white disabled:opacity-30"
+                      >
+                        <ArrowDown className="size-3" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => removeImg(p.id, idx)}
+                      className="grid size-6 place-items-center rounded-md bg-destructive text-white"
+                      title="Supprimer l'image"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <input
+                value={newImg[p.id] ?? ""}
+                onChange={(e) => setNewImg((s) => ({ ...s, [p.id]: e.target.value }))}
+                placeholder="URL d'une nouvelle image (https://…)"
+                className="flex-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs outline-none focus:border-pink"
+              />
+              <button
+                onClick={() => addImg(p.id)}
+                className="inline-flex items-center gap-1 rounded-lg bg-violet px-3 py-1.5 text-xs font-semibold text-white"
+              >
+                <Plus className="size-3" /> Ajouter
+              </button>
             </div>
           </div>
         ))}
@@ -311,3 +397,4 @@ function PricesPanel() {
     </section>
   );
 }
+

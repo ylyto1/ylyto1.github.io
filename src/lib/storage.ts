@@ -13,17 +13,17 @@ export interface TrackingConfig {
   gaId: string;
 }
 
-export interface ProductPrice {
+export interface ProductGroup {
   id: string;
   name: string;
   price: number;
-  image: string;
+  images: string[];
 }
 
 const KEYS = {
   leads: "ylyto.leads",
   tracking: "ylyto.tracking",
-  prices: "ylyto.prices",
+  products: "ylyto.products.v2",
 } as const;
 
 function read<T>(key: string, fallback: T): T {
@@ -62,39 +62,100 @@ export const trackingStore = {
   set: (cfg: TrackingConfig) => write(KEYS.tracking, cfg),
 };
 
-const defaultPrices: ProductPrice[] = [
-  { id: "1", name: "Ensemble Rose Câlin", price: 249, image: "https://cdn.ylyto.ma/ylyto/1.webp" },
-  { id: "2", name: "Combinaison Étoile", price: 279, image: "https://cdn.ylyto.ma/ylyto/2.webp" },
-  { id: "3", name: "Robe Bonbon", price: 229, image: "https://cdn.ylyto.ma/ylyto/3.webp" },
-  { id: "4", name: "Pyjama Nuage", price: 199, image: "https://cdn.ylyto.ma/ylyto/4.webp" },
-  { id: "5", name: "Tee Confetti", price: 149, image: "https://cdn.ylyto.ma/ylyto/5.webp" },
-  { id: "6", name: "Salopette Soleil", price: 269, image: "https://cdn.ylyto.ma/ylyto/6.png" },
-  { id: "7", name: "Body Doudou", price: 129, image: "https://cdn.ylyto.ma/ylyto/7.jpeg" },
-  { id: "8", name: "Ensemble Câline", price: 259, image: "https://cdn.ylyto.ma/ylyto/8.jpeg" },
-  { id: "9", name: "Tee Petite Star", price: 159, image: "https://cdn.ylyto.ma/ylyto/9.jpeg" },
-  { id: "10", name: "Tenue Festive", price: 289, image: "https://cdn.ylyto.ma/ylyto/10.png" },
-  { id: "11", name: "Robe Cerise", price: 239, image: "https://cdn.ylyto.ma/ylyto/11.png" },
+const defaultProducts: ProductGroup[] = [
+  {
+    id: "p1",
+    name: "Produit 1 — Combinaison Étoile",
+    price: 279,
+    images: [
+      "https://cdn.ylyto.ma/ylyto/2.webp",
+      "https://cdn.ylyto.ma/ylyto/4.webp",
+      "https://cdn.ylyto.ma/ylyto/10.png",
+    ],
+  },
+  {
+    id: "p2",
+    name: "Produit 2 — Ensemble Rose Câlin",
+    price: 259,
+    images: [
+      "https://cdn.ylyto.ma/ylyto/1.webp",
+      "https://cdn.ylyto.ma/ylyto/6.png",
+      "https://cdn.ylyto.ma/ylyto/7.jpeg",
+      "https://cdn.ylyto.ma/ylyto/8.jpeg",
+    ],
+  },
+  {
+    id: "p3",
+    name: "Produit 3 — Tee Petite Star",
+    price: 199,
+    images: [
+      "https://cdn.ylyto.ma/ylyto/9.jpeg",
+      "https://cdn.ylyto.ma/ylyto/11.png",
+      "https://cdn.ylyto.ma/ylyto/5.webp",
+      "https://cdn.ylyto.ma/ylyto/3.webp",
+    ],
+  },
 ];
 
-export const pricesStore = {
-  list: (): ProductPrice[] => {
-    const cur = read<ProductPrice[]>(KEYS.prices, []);
+export const productsStore = {
+  list: (): ProductGroup[] => {
+    const cur = read<ProductGroup[]>(KEYS.products, []);
     if (cur.length === 0) {
-      write(KEYS.prices, defaultPrices);
-      return defaultPrices;
+      write(KEYS.products, defaultProducts);
+      return defaultProducts;
     }
     return cur;
   },
-  update: (id: string, patch: Partial<ProductPrice>) => {
-    const next = pricesStore.list().map((p) => (p.id === id ? { ...p, ...patch } : p));
-    write(KEYS.prices, next);
-    return next;
+  save: (items: ProductGroup[]) => {
+    write(KEYS.products, items);
+    return items;
   },
-  reset: () => {
-    write(KEYS.prices, defaultPrices);
-    return defaultPrices;
+  update: (id: string, patch: Partial<ProductGroup>) => {
+    const next = productsStore.list().map((p) => (p.id === id ? { ...p, ...patch } : p));
+    return productsStore.save(next);
   },
+  add: (): ProductGroup[] => {
+    const items = productsStore.list();
+    const n = items.length + 1;
+    const next: ProductGroup = {
+      id: crypto.randomUUID(),
+      name: `Produit ${n}`,
+      price: 199,
+      images: [],
+    };
+    return productsStore.save([...items, next]);
+  },
+  remove: (id: string) => productsStore.save(productsStore.list().filter((p) => p.id !== id)),
+  move: (id: string, dir: -1 | 1) => {
+    const items = [...productsStore.list()];
+    const i = items.findIndex((p) => p.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= items.length) return items;
+    [items[i], items[j]] = [items[j], items[i]];
+    return productsStore.save(items);
+  },
+  addImage: (id: string, url: string) => {
+    if (!url.trim()) return productsStore.list();
+    return productsStore.update(id, {
+      images: [...(productsStore.list().find((p) => p.id === id)?.images ?? []), url.trim()],
+    });
+  },
+  removeImage: (id: string, index: number) => {
+    const p = productsStore.list().find((x) => x.id === id);
+    if (!p) return productsStore.list();
+    const images = p.images.filter((_, i) => i !== index);
+    return productsStore.update(id, { images });
+  },
+  moveImage: (id: string, index: number, dir: -1 | 1) => {
+    const p = productsStore.list().find((x) => x.id === id);
+    if (!p) return productsStore.list();
+    const images = [...p.images];
+    const j = index + dir;
+    if (j < 0 || j >= images.length) return productsStore.list();
+    [images[index], images[j]] = [images[j], images[index]];
+    return productsStore.update(id, { images });
+  },
+  reset: () => productsStore.save(defaultProducts),
 };
 
 // Auth is now handled by Lovable Cloud (Supabase). See /auth and /admin routes.
-
