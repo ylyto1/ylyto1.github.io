@@ -51,7 +51,9 @@ export const cartStore = {
   clear: () => write([]),
   subscribe: (l: Listener) => {
     listeners.add(l);
-    return () => listeners.delete(l);
+    return () => {
+      listeners.delete(l);
+    };
   },
 };
 
