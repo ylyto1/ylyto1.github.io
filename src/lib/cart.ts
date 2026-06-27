@@ -59,7 +59,11 @@ export function useCart() {
   const [items, setItems] = useState<CartItem[]>(() => read());
   useEffect(() => {
     setItems(read());
-    return cartStore.subscribe(setItems);
+    const unsub = cartStore.subscribe(setItems);
+    return () => {
+      unsub;
+      listeners.delete(setItems);
+    };
   }, []);
   return items;
 }
