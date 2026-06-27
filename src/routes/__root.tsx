@@ -91,6 +91,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "YLYTO — Mode enfant marocaine premium" },
+      { name: "description", content: "YLYTO Dreamscape is a premium, responsive landing page for a Moroccan children's clothing brand." },
+      { property: "og:description", content: "YLYTO Dreamscape is a premium, responsive landing page for a Moroccan children's clothing brand." },
+      { name: "twitter:description", content: "YLYTO Dreamscape is a premium, responsive landing page for a Moroccan children's clothing brand." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/jcZ7uLrfMETOMAMCVZrC94NPC173/social-images/social-1782583841790-Logo_YLYTO_v.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/jcZ7uLrfMETOMAMCVZrC94NPC173/social-images/social-1782583841790-Logo_YLYTO_v.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
