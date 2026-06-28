@@ -22,7 +22,10 @@ export default defineConfig({
     ...(isSandbox
       ? {}
       : {
-          spa: { enabled: true },
+          spa: {
+            enabled: true,
+            prerender: { outputPath: "/index" },
+          },
         }),
   } as any,
   ...(isSandbox ? {} : { nitro: false as any }),
