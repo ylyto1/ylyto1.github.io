@@ -124,6 +124,10 @@ export const productsStore = {
         changed = true;
         return { ...p, name: "Produit 2 — Robe Fleurie" };
       }
+      if (p.name === "Produit 3 — Tee Petite Star") {
+        changed = true;
+        return { ...p, name: "Produit 3 — Ensemble Fleuri\u00a0" };
+      }
       return p;
     });
     if (changed) write(KEYS.products, cur);
