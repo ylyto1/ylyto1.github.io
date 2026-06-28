@@ -33,16 +33,31 @@ jobs:
 
       - name: Build project
         run: bun run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
+      - name: Detect build output folder
+        run: |
+          echo "Searching for index.html..."
+          find . -maxdepth 4 -type f -name "index.html"
+
+          if [ -f "dist/index.html" ]; then
+            echo "PUBLIC_DIR=dist" >> $GITHUB_ENV
+          elif [ -f "dist/client/index.html" ]; then
+            echo "PUBLIC_DIR=dist/client" >> $GITHUB_ENV
+          elif [ -f ".output/public/index.html" ]; then
+            echo "PUBLIC_DIR=.output/public" >> $GITHUB_ENV
+          else
+            echo "No valid build output found"
+            echo "Available folders:"
+            find . -maxdepth 3 -type d
+            exit 1
+          fi
 
       - name: Fix SPA routing and custom domain
         run: |
-          cp dist/index.html dist/404.html
-          touch dist/.nojekyll
-          echo "ylyto.ma" > dist/CNAME
+          echo "Using public folder: $PUBLIC_DIR"
+          cp "$PUBLIC_DIR/index.html" "$PUBLIC_DIR/404.html"
+          touch "$PUBLIC_DIR/.nojekyll"
+          echo "ylyto.ma" > "$PUBLIC_DIR/CNAME"
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
@@ -50,7 +65,7 @@ jobs:
       - name: Upload build files
         uses: actions/upload-pages-artifact@v5
         with:
-          path: ./dist
+          path: ${{ env.PUBLIC_DIR }}
 
   deploy:
     runs-on: ubuntu-latest
