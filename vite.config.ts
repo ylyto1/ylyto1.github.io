@@ -15,25 +15,23 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 const isSandbox =
   process.env.LOVABLE_SANDBOX === "1" || !!process.env.DEV_SERVER__PROJECT_PATH;
 
+const staticNitro = {
+  preset: "static",
+  output: {
+    dir: "dist",
+    publicDir: "dist",
+  },
+  prerender: {
+    crawlLinks: false,
+    routes: ["/"],
+  },
+} as unknown as { preset: string };
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  ...(isSandbox
-    ? {}
-    : {
-        nitro: {
-          preset: "static",
-          output: {
-            dir: "dist",
-            publicDir: "dist",
-          },
-          prerender: {
-            crawlLinks: false,
-            routes: ["/"],
-          },
-        },
-      }),
+  ...(isSandbox ? {} : { nitro: staticNitro }),
 });
