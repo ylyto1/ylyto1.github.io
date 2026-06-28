@@ -44,6 +44,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tracking_config: {
+        Row: {
+          ga_id: string
+          id: boolean
+          meta_pixel_id: string
+          updated_at: string
+        }
+        Insert: {
+          ga_id?: string
+          id?: boolean
+          meta_pixel_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ga_id?: string
+          id?: boolean
+          meta_pixel_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
