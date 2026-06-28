@@ -34,30 +34,21 @@ jobs:
       - name: Build project
         run: bun run build
 
-      - name: Detect build output folder
+      - name: Prepare static SPA output
         run: |
-          echo "Searching for index.html..."
-          find . -maxdepth 4 -type f -name "index.html"
-
-          if [ -f "dist/index.html" ]; then
-            echo "PUBLIC_DIR=dist" >> $GITHUB_ENV
-          elif [ -f "dist/client/index.html" ]; then
-            echo "PUBLIC_DIR=dist/client" >> $GITHUB_ENV
-          elif [ -f ".output/public/index.html" ]; then
-            echo "PUBLIC_DIR=.output/public" >> $GITHUB_ENV
-          else
-            echo "No valid build output found"
-            echo "Available folders:"
-            find . -maxdepth 3 -type d
+          # TanStack Start SPA build emits the prerendered shell + client assets
+          # under dist/client. Promote that directory to the upload root, add
+          # the SPA 404 fallback so deep links work on GitHub Pages, and pin
+          # the custom domain.
+          if [ ! -f "dist/client/index.html" ]; then
+            echo "::error::dist/client/index.html missing — SPA build did not produce a shell"
+            ls -R dist || true
             exit 1
           fi
 
-      - name: Fix SPA routing and custom domain
-        run: |
-          echo "Using public folder: $PUBLIC_DIR"
-          cp "$PUBLIC_DIR/index.html" "$PUBLIC_DIR/404.html"
-          touch "$PUBLIC_DIR/.nojekyll"
-          echo "ylyto.ma" > "$PUBLIC_DIR/CNAME"
+          cp dist/client/index.html dist/client/404.html
+          touch dist/client/.nojekyll
+          echo "ylyto.ma" > dist/client/CNAME
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
@@ -65,7 +56,7 @@ jobs:
       - name: Upload build files
         uses: actions/upload-pages-artifact@v5
         with:
-          path: ${{ env.PUBLIC_DIR }}
+          path: dist/client
 
   deploy:
     runs-on: ubuntu-latest
