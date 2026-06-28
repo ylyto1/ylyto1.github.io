@@ -24,11 +24,10 @@ const staticNitro = {
 } as unknown as { preset: string };
 
 const spaTanstack = {
-  server: { entry: "server" },
   spa: {
     enabled: true,
   },
-} as unknown as { server: { entry: string } };
+} as unknown as { spa: { enabled: boolean } };
 
 export default defineConfig({
   tanstackStart: isSandbox ? { server: { entry: "server" } } : spaTanstack,
