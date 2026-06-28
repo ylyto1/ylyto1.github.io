@@ -74,7 +74,7 @@ export const trackingStore = {
 const defaultProducts: ProductGroup[] = [
   {
     id: "p1",
-    name: "Produit 1 — Robe Rose",
+    name: "Produit 1 — Robe Rose\u00a0",
     price: 279,
     images: [
       "https://cdn.ylyto.ma/ylyto/2.webp",
@@ -116,9 +116,9 @@ export const productsStore = {
     // Migration: rename products if they have old names
     let changed = false;
     cur = cur.map(p => {
-      if (p.name === "Produit 1 — Combinaison Étoile") {
+      if (p.name === "Produit 1 — Combinaison Étoile" || p.name === "Produit 1 — Robe Rose") {
         changed = true;
-        return { ...p, name: "Produit 1 — Robe Rose" };
+        return { ...p, name: "Produit 1 — Robe Rose\u00a0" };
       }
       if (p.name === "Produit 2 — Ensemble Rose Câlin") {
         changed = true;
