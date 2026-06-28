@@ -265,21 +265,57 @@ function LeadsPanel() {
 
 function TrackingPanel() {
   const [cfg, setCfg] = useState<TrackingConfig>({ metaPixelId: "", gaId: "" });
-  const [saved, setSaved] = useState(false);
-  useEffect(() => setCfg(trackingStore.get()), []);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
-  const save = (e: FormEvent) => {
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("tracking_config")
+        .select("meta_pixel_id, ga_id")
+        .eq("id", true)
+        .maybeSingle();
+      if (!error && data) {
+        setCfg({ metaPixelId: data.meta_pixel_id ?? "", gaId: data.ga_id ?? "" });
+      }
+      // keep local cache in sync for legacy code paths
+      trackingStore.set({ metaPixelId: data?.meta_pixel_id ?? "", gaId: data?.ga_id ?? "" });
+      setLoading(false);
+    })();
+  }, []);
+
+  const save = async (e: FormEvent) => {
     e.preventDefault();
-    trackingStore.set(cfg);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1800);
+    setSaving(true);
+    setMsg(null);
+    const { error } = await supabase
+      .from("tracking_config")
+      .upsert(
+        {
+          id: true,
+          meta_pixel_id: cfg.metaPixelId.trim(),
+          ga_id: cfg.gaId.trim(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      );
+    setSaving(false);
+    if (error) {
+      setMsg({ kind: "err", text: error.message });
+    } else {
+      trackingStore.set(cfg);
+      setMsg({ kind: "ok", text: "Enregistré ✓ — actif pour tous les visiteurs." });
+      setTimeout(() => setMsg(null), 3000);
+    }
   };
 
   return (
     <section className="rounded-3xl bg-card p-6 shadow-soft">
       <h2 className="text-xl">Tracking</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Configurez Meta Pixel et Google Analytics. Les scripts sont injectés automatiquement sur le site.
+        Configurez Meta Pixel et Google Analytics. Enregistrés dans le cloud — actifs immédiatement
+        pour tous les visiteurs après rechargement de la page.
       </p>
 
       <form onSubmit={save} className="mt-5 grid max-w-lg gap-4">
@@ -289,7 +325,8 @@ function TrackingPanel() {
             value={cfg.metaPixelId}
             onChange={(e) => setCfg({ ...cfg, metaPixelId: e.target.value })}
             placeholder="123456789012345"
-            className="w-full rounded-xl border-2 border-border bg-background px-3 py-2.5 outline-none focus:border-pink"
+            disabled={loading}
+            className="w-full rounded-xl border-2 border-border bg-background px-3 py-2.5 outline-none focus:border-pink disabled:opacity-60"
           />
         </label>
         <label className="block">
@@ -298,19 +335,28 @@ function TrackingPanel() {
             value={cfg.gaId}
             onChange={(e) => setCfg({ ...cfg, gaId: e.target.value })}
             placeholder="G-XXXXXXXXXX"
-            className="w-full rounded-xl border-2 border-border bg-background px-3 py-2.5 outline-none focus:border-pink"
+            disabled={loading}
+            className="w-full rounded-xl border-2 border-border bg-background px-3 py-2.5 outline-none focus:border-pink disabled:opacity-60"
           />
         </label>
         <div className="flex items-center gap-3">
-          <button className="inline-flex items-center gap-2 rounded-full bg-gradient-pink-sun px-5 py-2.5 text-sm font-bold text-white shadow-pop">
-            <Save className="size-4" /> Enregistrer
+          <button
+            disabled={loading || saving}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-pink-sun px-5 py-2.5 text-sm font-bold text-white shadow-pop disabled:opacity-60"
+          >
+            <Save className="size-4" /> {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
-          {saved && <span className="text-sm text-sky">Enregistré ✓</span>}
+          {msg && (
+            <span className={`text-sm ${msg.kind === "ok" ? "text-sky" : "text-destructive"}`}>
+              {msg.text}
+            </span>
+          )}
         </div>
       </form>
     </section>
   );
 }
+
 
 function PricesPanel() {
   const [items, setItems] = useState<ProductGroup[]>([]);
