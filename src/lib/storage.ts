@@ -74,7 +74,7 @@ export const trackingStore = {
 const defaultProducts: ProductGroup[] = [
   {
     id: "p1",
-    name: "Produit 1 — Combinaison Étoile",
+    name: "Produit 1 — Robe Rose",
     price: 279,
     images: [
       "https://cdn.ylyto.ma/ylyto/2.webp",
