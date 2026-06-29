@@ -85,7 +85,7 @@ const defaultProducts: ProductGroup[] = [
   {
     id: "p2",
     name: "Produit 2 — Robe Fleurie",
-    price: 259,
+    price: 179,
     images: [
       "https://cdn.ylyto.ma/ylyto/1.webp",
       "https://cdn.ylyto.ma/ylyto/6.png",
